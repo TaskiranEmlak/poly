@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polymarket Trading Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- TradingView Lightweight Charts -->
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i data-lucide="trending-up"></i>
+                </div>
+                <span class="logo-text">PolyTrader</span>
+            </div>
+
+            <nav class="nav">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-page="markets">
+                    <i data-lucide="bar-chart-3"></i>
+                    <span>Markets</span>
+                </a>
+                <a href="#" class="nav-item" data-page="trades">
+                    <i data-lucide="history"></i>
+                    <span>Trades</span>
+                </a>
+                <a href="#" class="nav-item" data-page="settings">
+                    <i data-lucide="settings"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="connection-status" id="connection-status">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Connecting...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Page: Dashboard -->
+            <div id="page-dashboard" class="page-view">
+                <!-- Header -->
+                <header class="header">
+                    <div class="header-left">
+                        <h1 class="page-title">Dashboard</h1>
+                        <span class="page-subtitle">BTC 15-Minute Prediction Markets</span>
+                    </div>
+                    <div class="header-right">
+                        <div class="bot-controls">
+                            <button class="btn btn-secondary" id="dry-run-toggle">
+                                <i data-lucide="flask-conical"></i>
+                                <span>Dry Run: ON</span>
+                            </button>
+                            <button class="btn btn-primary" id="bot-toggle">
+                                <i data-lucide="play"></i>
+                                <span>Start Bot</span>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i data-lucide="wallet"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-label">Portfolio Value</span>
+                            <span class="stat-value" id="portfolio-value">$10,000.00</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon profit">
+                            <i data-lucide="trending-up"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-label">Today's P&L</span>
+                            <span class="stat-value profit" id="pnl-today">+$0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i data-lucide="target"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-label">Win Rate</span>
+                            <span class="stat-value" id="win-rate">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i data-lucide="layers"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-label">Active Positions</span>
+                            <span class="stat-value" id="active-positions">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Grid -->
+                <div class="content-grid">
+                    <!-- Chart Section -->
+                    <section class="card chart-card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i data-lucide="bitcoin"></i>
+                                <span>Bitcoin (BTC/USD)</span>
+                            </div>
+                            <div class="price-display">
+                                <span class="current-price" id="btc-price">$0.00</span>
+                                <span class="price-change profit" id="price-change">+0.00%</span>
+                            </div>
+                        </div>
+                        <div class="chart-container" id="price-chart"></div>
+                    </section>
+
+                    <!-- Active Markets -->
+                    <section class="card markets-card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i data-lucide="activity"></i>
+                                <span>Active Markets</span>
+                            </div>
+                            <button class="btn btn-ghost btn-sm" id="refresh-markets">
+                                <i data-lucide="refresh-cw"></i>
+                            </button>
+                        </div>
+                        <div class="markets-list" id="markets-list">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <span>Loading markets...</span>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Activity Log -->
+                <section class="card log-card" style="margin-top: 1.5rem;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="terminal"></i>
+                            <span>Bot Activity</span>
+                        </div>
+                    </div>
+                    <div class="log-container" id="activity-log">
+                        <div class="log-entry info">
+                            <span class="log-time">--:--:--</span>
+                            <span class="log-message">Waiting for bot logs...</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Trades Table -->
+                <section class="card trades-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="scroll-text"></i>
+                            <span>Recent Trades</span>
+                        </div>
+                        <span class="trade-count" id="trade-count">0 trades</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="trades-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Market</th>
+                                    <th>Type</th>
+                                    <th>Side</th>
+                                    <th>Price</th>
+                                    <th>Amount</th>
+                                    <th>P&L</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trades-body">
+                                <tr class="empty-row">
+                                    <td colspan="8">
+                                        <div class="empty-state">
+                                            <i data-lucide="inbox"></i>
+                                            <span>No trades yet</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Page: Markets -->
+            <div id="page-markets" class="page-view" style="display: none;">
+                <header class="header">
+                    <div class="header-left">
+                        <h1 class="page-title">Market Analysis</h1>
+                    </div>
+                </header>
+                <div class="card full-height">
+                    <div class="card-body">
+                        <div class="empty-state">
+                            <i data-lucide="bar-chart-3"></i>
+                            <span>Detailed market analysis coming soon</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page: Trades -->
+            <div id="page-trades" class="page-view" style="display: none;">
+                <header class="header">
+                    <div class="header-left">
+                        <h1 class="page-title">Trade History</h1>
+                    </div>
+                </header>
+                <div class="card">
+                    <!-- Full trades table will go here -->
+                    <div class="card-body">
+                        <div class="empty-state">
+                            <i data-lucide="history"></i>
+                            <span>Full trade history coming soon</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page: Settings -->
+            <div id="page-settings" class="page-view" style="display: none;">
+                <header class="header">
+                    <div class="header-left">
+                        <h1 class="page-title">Settings</h1>
+                    </div>
+                </header>
+                <div class="settings-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Risk Management</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>Max Position Size ($)</label>
+                                <input type="number" value="50" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>
