@@ -64,6 +64,14 @@ class Settings(BaseSettings):
     )
     
     # ==========================================
+    # STRATEGY SELECTION
+    # ==========================================
+    strategy_type: str = Field(
+        default="hybrid",
+        description="Strategy mode: 'hybrid', 'maker_only', or 'taker_only'"
+    )
+
+    # ==========================================
     # ORACLE LATENCY ARBITRAGE
     # ==========================================
     min_edge_percent: float = Field(

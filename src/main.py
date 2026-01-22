@@ -193,48 +193,52 @@ class PolymarketHFTBot:
         # =========================================
         # STRATEGY 1: Oracle Latency Arbitrage
         # =========================================
-        opportunity = self.latency_engine.evaluate_opportunity(
-            binance_price=self.current_binance_price,
-            strike_price=strike_decimal,
-            remaining_seconds=remaining,
-            orderbook=self.current_orderbook,
-            market_question=self.active_market["question"]
-        )
-        
-        if opportunity:
-            logger.info(
-                "snipe_opportunity",
-                side=opportunity.side,
-                fair_price=f"{opportunity.fair_price:.4f}",
-                stale_price=str(opportunity.stale_price),
-                expected_profit=f"${opportunity.expected_profit:.4f}"
+        # Only run if mode is 'hybrid' or 'taker_only'
+        opportunity = None
+        if settings.strategy_type in ["hybrid", "taker_only"]:
+            opportunity = self.latency_engine.evaluate_opportunity(
+                binance_price=self.current_binance_price,
+                strike_price=strike_decimal,
+                remaining_seconds=remaining,
+                orderbook=self.current_orderbook,
+                market_question=self.active_market["question"]
             )
             
-            if not self.dry_run:
-                # Calculate position size
-                size = self.latency_engine.calculate_position_size(opportunity)
-                
-                # Execute snipe
-                result = await self.order_manager.place_market_order(
-                    token_id=opportunity.token_id,
-                    side="BUY",
-                    amount=float(opportunity.stale_price) * size
+            if opportunity:
+                logger.info(
+                    "snipe_opportunity",
+                    side=opportunity.side,
+                    fair_price=f"{opportunity.fair_price:.4f}",
+                    stale_price=str(opportunity.stale_price),
+                    expected_profit=f"${opportunity.expected_profit:.4f}"
                 )
                 
-                if result.get("success"):
-                    self.latency_engine.record_execution(
-                        success=True,
-                        profit=opportunity.expected_profit * size
+                if not self.dry_run:
+                    # Calculate position size
+                    size = self.latency_engine.calculate_position_size(opportunity)
+                    
+                    # Execute snipe
+                    result = await self.order_manager.place_market_order(
+                        token_id=opportunity.token_id,
+                        side="BUY",
+                        amount=float(opportunity.stale_price) * size
                     )
-            else:
-                # Dry run - just log
-                self.latency_engine.record_execution(success=True)
+                    
+                    if result.get("success"):
+                        self.latency_engine.record_execution(
+                            success=True,
+                            profit=opportunity.expected_profit * size
+                        )
+                else:
+                    # Dry run - just log
+                    self.latency_engine.record_execution(success=True)
         
         # =========================================
         # STRATEGY 2: Market Making
         # =========================================
-        # Only run if no latency opportunity (avoid conflicts)
-        if not opportunity:
+        # Only run if mode is 'hybrid' or 'maker_only'
+        # AND if no latency opportunity was taken (to avoid conflicts)
+        if not opportunity and settings.strategy_type in ["hybrid", "maker_only"]:
             orders_to_cancel, new_quotes = self.mm_engine.generate_quote_update(
                 binance_price=self.current_binance_price,
                 strike_price=strike_decimal,
