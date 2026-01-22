@@ -467,8 +467,8 @@ if __name__ == "__main__":
     if sys.platform != "win32":
         try:
             import uvloop
-            uvloop.install()
-            print("🚀 uvloop installed for maximum performance")
+            asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+            print("🚀 uvloop active: HFT mode enabled for Linux/Mac")
         except ImportError:
             pass
 

@@ -94,6 +94,7 @@ async def discover_15min_btc_markets(
                 match = BTC_15M_SLUG_PATTERN.match(slug)
                 
                 # FALLBACK: Check tags and description if slug doesn't match
+                # Fallback mechanism for market discovery handles slug changes.
                 if not match:
                     tags = event.get("tags", [])
                     has_15m_tag = any(t.get("slug") == "15M" or t.get("label") == "15M" for t in tags)
