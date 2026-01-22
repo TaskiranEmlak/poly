@@ -93,6 +93,22 @@ async def discover_15min_btc_markets(
                 slug = event.get("slug", "")
                 match = BTC_15M_SLUG_PATTERN.match(slug)
                 
+                # FALLBACK: Check tags and description if slug doesn't match
+                if not match:
+                    tags = event.get("tags", [])
+                    has_15m_tag = any(t.get("slug") == "15M" or t.get("label") == "15M" for t in tags)
+                    
+                    # Check first market description for BTC keywords
+                    event_markets_check = event.get("markets", [])
+                    if event_markets_check:
+                        desc = event_markets_check[0].get("description", "").lower()
+                        title = event_markets_check[0].get("question", "").lower()
+                        is_btc = "bitcoin" in desc or "btc" in desc or "bitcoin" in title or "btc" in title
+                        
+                        if has_15m_tag and is_btc:
+                            # Create a dummy match object or just set flag
+                            match = True
+                
                 if match:
                     event_markets = event.get("markets", [])
                     if not event_markets:

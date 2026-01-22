@@ -389,13 +389,28 @@ class PolymarketHFTBot:
         
         refresh_task = asyncio.create_task(refresh_market_periodically())
         
+        # Volatility update task
+        async def update_volatility_periodically():
+            while self.running:
+                try:
+                    vol = await BinancePriceFeed.fetch_realtime_volatility()
+                    self.fair_calc.annual_vol = vol
+                    logger.info("volatility_updated", new_vol=f"{vol:.2%}")
+                except Exception as e:
+                    logger.error("vol_update_error", error=str(e))
+                
+                await asyncio.sleep(3600)  # Update every hour
+        
+        vol_task = asyncio.create_task(update_volatility_periodically())
+        
         try:
             # Run until stopped
             await asyncio.gather(
                 binance_task,
                 polymarket_task,
                 stats_task,
-                refresh_task
+                refresh_task,
+                vol_task
             )
         except asyncio.CancelledError:
             logger.info("bot_tasks_cancelled")
@@ -448,5 +463,14 @@ async def main():
 
 
 if __name__ == "__main__":
+    # Optimize event loop on non-Windows systems
+    if sys.platform != "win32":
+        try:
+            import uvloop
+            uvloop.install()
+            print("🚀 uvloop installed for maximum performance")
+        except ImportError:
+            pass
+
     print("\n🚀 Starting Polymarket HFT Bot...\n")
     asyncio.run(main())

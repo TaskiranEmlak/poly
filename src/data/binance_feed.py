@@ -136,3 +136,50 @@ class BinancePriceFeed:
             "reconnect_count": self.reconnect_count,
             "connected": self._running and self._ws is not None
         }
+
+    @staticmethod
+    async def fetch_realtime_volatility(symbol: str = "BTCUSDT") -> float:
+        """
+        Fetch 24h volatility from Binance klines (1h intervals).
+        Returns annualized volatility.
+        """
+        import aiohttp
+        import numpy as np
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                url = "https://api.binance.com/api/v3/klines"
+                # Get last 24 hours of 1h candles
+                params = {
+                    "symbol": symbol.upper(),
+                    "interval": "1h",
+                    "limit": 25
+                }
+                async with session.get(url, params=params, timeout=5) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        if not data or len(data) < 2:
+                            return 0.80
+                            
+                        # Extract close prices (index 4)
+                        closes = [float(candle[4]) for candle in data]
+                        
+                        # Calculate log returns
+                        log_returns = np.diff(np.log(closes))
+                        
+                        if len(log_returns) == 0:
+                            return 0.80
+                            
+                        # Calculate standard deviation
+                        std_dev = np.std(log_returns)
+                        
+                        # Annualize: Vol * sqrt(24 * 365)
+                        annual_vol = std_dev * np.sqrt(24 * 365.25)
+                        
+                        # Sanity check limits (20% to 200%)
+                        return max(0.20, min(2.0, float(annual_vol)))
+                        
+        except Exception as e:
+            logger.error("volatility_fetch_error", error=str(e))
+            
+        return 0.80  # Default fallback

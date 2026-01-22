@@ -40,6 +40,13 @@ class DynamicFeeCalculator:
         """
         self.max_fee_bps = max_fee_bps
         self._calculations = 0
+        
+        # SAFETY CHECK: Warn user to verify fees
+        logger.warning(
+            "fee_structure_check",
+            message="Using Jan 2026 Parabolic Fee Model (Max 3.15%). Verify latest rates at docs.polymarket.com",
+            max_fee_bps=max_fee_bps
+        )
     
     def calculate_taker_fee(self, price: Decimal) -> float:
         """

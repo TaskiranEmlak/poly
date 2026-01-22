@@ -345,6 +345,19 @@ class PaperTradingEngine:
     
     async def _execute_paper_trade(self, market: dict, side: str, price: float):
         """Execute a simulated trade."""
+        # SIMULATION REALISM: Fill Probability & Slippage
+        # In real HFT, not all orders get filled even if we see the price.
+        import random
+        
+        # 20% chance of miss (simulating latency/race conditions)
+        fill_prob = 0.80
+        
+        # If price is very good (e.g. crossing), higher chance. 
+        # But we are just acting on a snapshot.
+        if random.random() > fill_prob:
+             await self._log(f"⚠️ SIMULATION: Order missed (latency/slippage) for {side} on {market['slug']}", "warning")
+             return
+
         # Calculate position size (Kelly-inspired)
         edge = abs(0.50 - price)
         position_size = min(self.max_position_size, self.balance * 0.05 * (edge / 0.10))
