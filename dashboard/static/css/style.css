@@ -464,6 +464,8 @@ body {
 .chart-container {
     height: 350px;
     padding: 16px;
+    position: relative;
+    /* For legend positioning */
 }
 
 /* Markets Card */
@@ -560,6 +562,140 @@ body {
 .price-down {
     color: var(--loss);
     font-weight: 600;
+}
+
+/* Strategy Card */
+.strategy-card {
+    margin-bottom: 24px;
+    background: linear-gradient(145deg, rgba(20, 20, 30, 0.6) 0%, rgba(30, 30, 45, 0.4) 100%);
+    border: 1px solid var(--accent-primary);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.05);
+}
+
+.strategy-content {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+}
+
+.strategy-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.metric-label,
+.decision-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.metric-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.decision-text {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+/* RSI Bar */
+.rsi-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.rsi-bar {
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Markers for 30 and 70 levels */
+.rsi-bar::before {
+    content: '';
+    position: absolute;
+    left: 30%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.rsi-bar::after {
+    content: '';
+    position: absolute;
+    left: 70%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.rsi-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--loss) 0%, var(--warning) 50%, var(--profit) 100%);
+    width: 50%;
+    transition: width 0.5s ease;
+}
+
+.rsi-value {
+    font-weight: 700;
+    min-width: 45px;
+    text-align: right;
+}
+
+/* Trend Badge */
+.trend-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.trend-badge.up {
+    background: rgba(0, 255, 136, 0.15);
+    color: var(--profit);
+    border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+.trend-badge.down {
+    background: rgba(255, 77, 106, 0.15);
+    color: var(--loss);
+    border: 1px solid rgba(255, 77, 106, 0.3);
+}
+
+.trend-badge.neutral {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.strategy-decision span.decision-up {
+    color: var(--profit);
+}
+
+.strategy-decision span.decision-down {
+    color: var(--loss);
+}
+
+.strategy-decision span.decision-wait {
+    color: var(--warning);
 }
 
 /* Trades Card */
@@ -893,5 +1029,136 @@ body {
 
     .main-content {
         margin-left: 70px;
+    }
+}
+
+/* ============================================
+   Active Trade Panel (NEW)
+   ============================================ */
+.active-trade-card {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(124, 77, 255, 0.1) 100%);
+    border: 2px solid var(--accent-primary);
+    animation: pulse-border 2s infinite;
+}
+
+@keyframes pulse-border {
+
+    0%,
+    100% {
+        border-color: var(--accent-primary);
+    }
+
+    50% {
+        border-color: var(--accent-secondary);
+    }
+}
+
+.trade-countdown {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--warning);
+    background: rgba(255, 184, 77, 0.15);
+    padding: 8px 16px;
+    border-radius: var(--border-radius-sm);
+}
+
+.trade-countdown i {
+    width: 20px;
+    height: 20px;
+}
+
+.active-trade-content {
+    padding: 16px;
+}
+
+.trade-info-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.trade-info-item {
+    text-align: center;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-sm);
+}
+
+.trade-info-item.wide {
+    grid-column: span 4;
+}
+
+.trade-info-item .info-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.trade-info-item .info-value {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.trade-info-item .info-value.trade-side {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.trade-info-item .info-value.trade-side.up {
+    color: var(--profit);
+}
+
+.trade-info-item .info-value.trade-side.down {
+    color: var(--loss);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.status-indicator .status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+.status-indicator .status-dot.winning {
+    background: var(--profit);
+    box-shadow: 0 0 10px var(--profit);
+}
+
+.status-indicator .status-dot.losing {
+    background: var(--loss);
+    box-shadow: 0 0 10px var(--loss);
+}
+
+.status-indicator .status-dot.uncertain {
+    background: var(--warning);
+    box-shadow: 0 0 10px var(--warning);
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
     }
 }

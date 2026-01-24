@@ -47,7 +47,7 @@ class Settings(BaseSettings):
         description="Polymarket CLOB API host"
     )
     polymarket_ws: str = Field(
-        default="wss://ws-subscriptions-clob.polymarket.com/ws/",
+        default="wss://ws-subscriptions-clob.polymarket.com/ws/market",
         description="Polymarket WebSocket endpoint"
     )
     gamma_api: str = Field(

@@ -15,7 +15,7 @@ class TradingDashboard {
             botRunning: false,
             dryRun: true,
             portfolio: {
-                value: 10000,
+                value: 10,
                 pnlToday: 0,
                 winRate: 0,
                 positions: 0
@@ -23,6 +23,8 @@ class TradingDashboard {
             markets: [],
             trades: []
         };
+
+        this.markers = [];
 
         this.init();
     }
@@ -45,60 +47,72 @@ class TradingDashboard {
     }
 
     initChart() {
-        const container = document.getElementById('price-chart');
-        if (!container) return;
+        const priceContainer = document.getElementById('price-chart');
+        const probContainer = document.getElementById('prob-chart');
 
-        this.chart = LightweightCharts.createChart(container, {
-            layout: {
-                background: { type: 'solid', color: 'transparent' },
-                textColor: '#a0a3bd',
-            },
-            grid: {
-                vertLines: { color: 'rgba(255, 255, 255, 0.05)' },
-                horzLines: { color: 'rgba(255, 255, 255, 0.05)' },
-            },
-            crosshair: {
-                mode: LightweightCharts.CrosshairMode.Normal,
-            },
-            rightPriceScale: {
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-                scaleMargins: { top: 0.1, bottom: 0.1 },
-            },
-            timeScale: {
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-                timeVisible: true,
-                secondsVisible: false,
-            },
+        if (!priceContainer || !probContainer) return;
+
+        // --- CHART 1: BTC Price ---
+        this.chart = LightweightCharts.createChart(priceContainer, {
+            layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#a0a3bd' },
+            grid: { vertLines: { color: 'rgba(255, 255, 255, 0.05)' }, horzLines: { color: 'rgba(255, 255, 255, 0.05)' } },
+            crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+            rightPriceScale: { borderColor: 'rgba(255, 255, 255, 0.1)' },
+            timeScale: { borderColor: 'rgba(255, 255, 255, 0.1)', timeVisible: true, secondsVisible: true },
             handleScroll: { vertTouchDrag: false },
         });
 
         this.candleSeries = this.chart.addCandlestickSeries({
-            upColor: '#00ff88',
-            downColor: '#ff4d6a',
-            borderUpColor: '#00ff88',
-            borderDownColor: '#ff4d6a',
-            wickUpColor: '#00ff88',
-            wickDownColor: '#ff4d6a',
+            upColor: '#00ff88', downColor: '#ff4d6a', borderUpColor: '#00ff88', borderDownColor: '#ff4d6a', wickUpColor: '#00ff88', wickDownColor: '#ff4d6a',
         });
 
-        // Add line series for live price
         this.lineSeries = this.chart.addLineSeries({
-            color: '#00d4ff',
-            lineWidth: 2,
-            crosshairMarkerVisible: true,
-            crosshairMarkerRadius: 4,
+            color: '#00d4ff', lineWidth: 2, crosshairMarkerVisible: true,
         });
+
+        // --- CHART 2: Polymarket Probability ---
+        this.probChart = LightweightCharts.createChart(probContainer, {
+            layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#a0a3bd' },
+            grid: { vertLines: { color: 'rgba(255, 255, 255, 0.05)' }, horzLines: { color: 'rgba(255, 255, 255, 0.05)' } },
+            rightPriceScale: {
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                scaleMargins: { top: 0.1, bottom: 0.1 },
+                visible: true,
+            },
+            timeScale: {
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                timeVisible: true,
+                secondsVisible: true,
+                visible: true
+            },
+            handleScroll: { vertTouchDrag: false },
+        });
+
+        // Area series for Probability (0-100%)
+        this.probSeries = this.probChart.addAreaSeries({
+            lineColor: '#00ff88', topColor: 'rgba(0, 255, 136, 0.4)', bottomColor: 'rgba(0, 255, 136, 0.0)',
+            lineWidth: 2,
+            priceFormat: { type: 'price', precision: 1, minMove: 0.1 },
+        });
+
+        // Sync Charts (rough sync via timestamps)
+        // Note: For perfect sync we'd need a wrapper, but separate is fine for dashboard
+
+        // Add entry price line (horizontal)
+        this.entryLine = null;
+        this.strikeLine = null;
 
         // Fetch real historical data
         this.fetchHistoricalData();
 
-        // Make chart responsive
+        // Periodic refresh
+        setInterval(() => this.fetchHistoricalData(), 60000);
+
+        // Responsive
         new ResizeObserver(() => {
-            this.chart.applyOptions({
-                width: container.clientWidth,
-                height: container.clientHeight
-            });
-        }).observe(container);
+            this.chart.applyOptions({ width: priceContainer.clientWidth, height: priceContainer.clientHeight });
+            this.probChart.applyOptions({ width: probContainer.clientWidth, height: probContainer.clientHeight });
+        }).observe(priceContainer);
     }
 
     async fetchHistoricalData() {
@@ -187,7 +201,7 @@ class TradingDashboard {
             console.log('WebSocket connected');
             this.state.connected = true;
             this.updateConnectionStatus(true);
-            this.showToast('Connected to server', 'success');
+            this.showToast('Sunucuya bağlanıldı', 'success');
         };
 
         this.ws.onclose = () => {
@@ -253,14 +267,14 @@ class TradingDashboard {
 
         // Remove initial waiting message if present
         const initialMsg = container.querySelector('.log-message');
-        if (initialMsg && initialMsg.textContent === 'Waiting for bot logs...') {
+        if (initialMsg && initialMsg.textContent === 'Bot logları bekleniyor...') {
             container.innerHTML = '';
         }
 
         const entry = document.createElement('div');
         entry.className = `log-entry ${data.level || 'info'}`;
 
-        const time = new Date(data.time).toLocaleTimeString('en-US', {
+        const time = new Date(data.time).toLocaleTimeString('tr-TR', {
             hour12: false,
             hour: '2-digit',
             minute: '2-digit',
@@ -308,8 +322,24 @@ class TradingDashboard {
 
     handlePriceUpdate(data) {
         const price = data.btc_price;
+        const source = data.source;
+
         const priceElement = document.getElementById('btc-price');
         const changeElement = document.getElementById('price-change');
+
+        // Update price title or subtitle to show source
+        const allOk = Array.from(document.querySelectorAll('p'));
+        const subtitle = allOk.find(el => el.textContent.includes('BTC 15-Dakikalık'));
+
+        if (subtitle && source) {
+            subtitle.textContent = `BTC 15-Dakikalık Tahmin Piyasaları (Fiyat Kaynağı: ${source})`;
+        }
+
+        // Also update legend if possible
+        const legendItem = document.querySelector('.chart-legend-item.price span');
+        if (legendItem && source) {
+            legendItem.textContent = `Ref Fiyat (${source})`;
+        }
 
         if (priceElement) {
             priceElement.textContent = this.formatCurrency(price);
@@ -323,18 +353,96 @@ class TradingDashboard {
             changeElement.classList.toggle('loss', change < 0);
         }
 
-        // Update chart
         if (this.lineSeries) {
             const time = Math.floor(Date.now() / 1000);
             this.lineSeries.update({ time, value: price });
+
+            // Auto-scroll to keep chart real-time
+            this.chart.timeScale().scrollToRealTime();
+
+            // --- UPDATE PROBABILITY CHART ---
+            if (this.probSeries && this.state.markets.length > 0) {
+                // Get best active market (sorted by expiry usually)
+                const m = this.state.markets[0];
+                const prices = m.outcome_prices || {};
+                const probUp = (prices.up || 0.5) * 100; // Convert to percentage
+
+                this.probSeries.update({ time, value: probUp });
+                this.probChart.timeScale().scrollToRealTime();
+            }
         }
 
         this.lastPrice = price;
+
+        // --- UPDATE STRATEGY PULSE UI ---
+        if (data.rsi !== undefined && data.trend !== undefined) {
+            const rsi = data.rsi;
+            const trend = data.trend;
+
+            // Update RSI Bar
+            const rsiFill = document.getElementById('rsi-fill');
+            const rsiVal = document.getElementById('rsi-value');
+            if (rsiFill && rsiVal) {
+                rsiFill.style.width = `${rsi}%`;
+                rsiVal.textContent = rsi.toFixed(1);
+
+                // Color logic for RSI
+                rsiFill.style.background =
+                    rsi > 70 ? 'var(--warning)' :
+                        rsi < 30 ? 'var(--accent-secondary)' :
+                            'linear-gradient(90deg, var(--loss) 0%, var(--warning) 50%, var(--profit) 100%)';
+            }
+
+            // Update Trend Badge
+            const trendBadge = document.getElementById('strategy-trend');
+            const smaVal = document.getElementById('sma-value');
+
+            if (trendBadge) {
+                trendBadge.className = `trend-badge ${trend.toLowerCase()}`;
+
+                // Translate Trend
+                const trendMap = { 'UP': 'YÜKSELİŞ', 'DOWN': 'DÜŞÜŞ', 'FLAT': 'YATAY' };
+                trendBadge.textContent = trendMap[trend] || trend;
+            }
+
+            if (smaVal && data.sma) {
+                const diff = ((price - data.sma) / data.sma) * 100;
+                smaVal.textContent = `SMA ${diff >= 0 ? '+' : ''}${diff.toFixed(2)}%`;
+                smaVal.style.color = diff >= 0 ? 'var(--profit)' : 'var(--loss)';
+            }
+
+            // Update Decision Text
+            const decisionEl = document.getElementById('strategy-decision');
+            if (decisionEl) {
+                let text = "NÖTR / BEKLE";
+                let cls = "decision-wait";
+
+                if (trend === 'UP') {
+                    if (rsi > 70) { text = "AŞIRI ALIM (BEKLE)"; cls = "decision-wait"; }
+                    else { text = "ALIM FIRSATI ARA"; cls = "decision-up"; }
+                } else if (trend === 'DOWN') {
+                    if (rsi < 30) { text = "AŞIRI SATIM (BEKLE)"; cls = "decision-wait"; }
+                    else { text = "SATIŞ FIRSATI ARA"; cls = "decision-down"; }
+                }
+
+                decisionEl.innerHTML = `<span class="${cls}">${text}</span>`;
+            }
+        }
     }
 
     handleMarketsUpdate(data) {
         this.state.markets = data.markets || [];
         this.renderMarkets();
+
+        // Also update probability chart immediately if possible
+        if (this.probSeries && this.state.markets.length > 0) {
+            const time = Math.floor(Date.now() / 1000);
+            const m = this.state.markets[0];
+            const prices = m.outcome_prices || {};
+            const probUp = (prices.up || 0.5) * 100;
+
+            this.probSeries.update({ time, value: probUp });
+        }
     }
 
     handleNewTrade(data) {
@@ -347,7 +455,165 @@ class TradingDashboard {
         }
 
         this.renderTrades();
-        this.showToast(`Trade executed: ${trade.side} ${trade.market}`, trade.pnl >= 0 ? 'success' : 'error');
+        this.showToast(`İşlem gerçekleştirildi: ${trade.side} ${trade.market}`, trade.pnl >= 0 ? 'success' : 'error');
+
+        // Show active trade panel if trade is pending
+        if (trade.status === 'pending') {
+            this.showActiveTrade(trade, data.message);
+        } else {
+            // Trade Completed - Add EXIT marker
+            if (this.candleSeries) {
+                const time = Math.floor(Date.now() / 1000);
+                const isWin = trade.status === 'won';
+
+                this.markers.push({
+                    time: time,
+                    position: isWin ? 'aboveBar' : 'belowBar',
+                    color: isWin ? '#00ff88' : '#ff4d6a',
+                    shape: 'circle',
+                    text: `${isWin ? 'KAZANDI' : 'KAYBETTİ'} $${Math.abs(trade.pnl).toFixed(2)}`
+                });
+
+                this.markers.sort((a, b) => a.time - b.time);
+                this.candleSeries.setMarkers(this.markers);
+            }
+
+            this.hideActiveTrade();
+        }
+    }
+
+    showActiveTrade(trade, message) {
+        const panel = document.getElementById('active-trade-panel');
+        if (!panel) return;
+
+        panel.style.display = 'block';
+
+        // Update side
+        const sideEl = document.getElementById('active-side');
+        sideEl.textContent = trade.side.toUpperCase();
+        sideEl.className = `info-value trade-side ${trade.side.toLowerCase()}`;
+
+        // Update entry price
+        document.getElementById('active-entry').textContent = `$${trade.price.toFixed(3)}`;
+
+        // Parse end time from market slug (btc-updown-15m-TIMESTAMP)
+        const slugMatch = trade.market?.match(/(\d{10})/);
+        if (slugMatch) {
+            const endTimestamp = parseInt(slugMatch[1]) * 1000;
+            this.activeTradeEndTime = endTimestamp;
+            this.startCountdown();
+        }
+
+        // Reinit icons
+        lucide.createIcons();
+
+        // Add Strike Price Line to Chart
+        // PINNED TO ACTIVE TRADE - Force use of trade data or persistent DOM data
+        let strikePrice = trade.strike;
+
+        // If not directly in trade obj, try DOM backup (persistence)
+        if (!strikePrice) {
+            const stored = document.getElementById('active-strike').dataset.price;
+            if (stored) strikePrice = parseFloat(stored);
+        }
+
+        // Fallback: parse from market string
+        if (!strikePrice && trade.market) {
+            const match = trade.market.match(/\$?([\d,]+\.?\d*)/);
+            if (match) strikePrice = parseFloat(match[1].replace(/,/g, ''));
+        }
+
+        // Save to DOM for future redraws
+        if (strikePrice) {
+            const strikeEl = document.getElementById('active-strike');
+            if (strikeEl) {
+                strikeEl.dataset.price = strikePrice;
+                strikeEl.textContent = `$${strikePrice.toFixed(2)}`;
+            }
+        }
+
+        if (strikePrice && this.chart && this.candleSeries) {
+            // Remove old line if exists
+            if (this.strikeLine) {
+                this.candleSeries.removePriceLine(this.strikeLine);
+            }
+
+            this.strikeLine = this.candleSeries.createPriceLine({
+                price: strikePrice,
+                color: '#ff4d6a', // Red for strike
+                lineWidth: 2,
+                lineStyle: LightweightCharts.LineStyle.Solid, // Solid for active trade
+                axisLabelVisible: true,
+                title: 'HEDEF STRIKE',
+            });
+        }
+
+        // Add Entry Marker
+        if (this.candleSeries) {
+            const time = Math.floor(Date.now() / 1000);
+
+            // Add to markers list
+            this.markers.push({
+                time: time,
+                position: trade.side === 'up' ? 'belowBar' : 'aboveBar',
+                color: trade.side === 'up' ? '#00ff88' : '#ff4d6a',
+                shape: trade.side === 'up' ? 'arrowUp' : 'arrowDown',
+                text: `GİRİŞ ${trade.side.toUpperCase()} @ ${trade.price.toFixed(2)}`
+            });
+
+            // Sort markers by time (required by library)
+            this.markers.sort((a, b) => a.time - b.time);
+            this.candleSeries.setMarkers(this.markers);
+        }
+    }
+
+    hideActiveTrade() {
+        const panel = document.getElementById('active-trade-panel');
+        if (panel) {
+            panel.style.display = 'none';
+        }
+
+        // Remove strike line
+        if (this.strikeLine && this.candleSeries) {
+            this.candleSeries.removePriceLine(this.strikeLine);
+            this.strikeLine = null;
+        }
+
+        this.activeTradeEndTime = null;
+    }
+
+    startCountdown() {
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+        }
+
+        this.countdownInterval = setInterval(() => {
+            if (!this.activeTradeEndTime) {
+                clearInterval(this.countdownInterval);
+                return;
+            }
+
+            const now = Date.now();
+            const remaining = Math.max(0, this.activeTradeEndTime - now);
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+
+            const timerEl = document.getElementById('countdown-timer');
+            if (timerEl) {
+                timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            // Update BTC price in panel
+            const btcEl = document.getElementById('active-btc');
+            if (btcEl) {
+                btcEl.textContent = this.formatCurrency(this.lastPrice);
+            }
+
+            if (remaining <= 0) {
+                clearInterval(this.countdownInterval);
+                this.hideActiveTrade();
+            }
+        }, 1000);
     }
 
     handlePortfolioUpdate(data) {
@@ -392,18 +658,18 @@ class TradingDashboard {
             if (this.state.botRunning) {
                 botToggle.classList.add('running');
                 if (icon) icon.setAttribute('data-lucide', 'square');
-                if (text) text.textContent = 'Stop Bot';
+                if (text) text.textContent = 'Botu Durdur';
             } else {
                 botToggle.classList.remove('running');
                 if (icon) icon.setAttribute('data-lucide', 'play');
-                if (text) text.textContent = 'Start Bot';
+                if (text) text.textContent = 'Botu Başlat';
             }
             lucide.createIcons();
         }
 
         if (dryRunToggle) {
             const text = dryRunToggle.querySelector('span');
-            if (text) text.textContent = `Dry Run: ${this.state.dryRun ? 'ON' : 'OFF'}`;
+            if (text) text.textContent = `Test Modu: ${this.state.dryRun ? 'AÇIK' : 'KAPALI'}`;
             dryRunToggle.classList.toggle('active', this.state.dryRun);
         }
     }
@@ -416,12 +682,12 @@ class TradingDashboard {
 
             if (data.success) {
                 this.showToast(
-                    this.state.botRunning ? 'Bot stopped' : 'Bot started',
+                    this.state.botRunning ? 'Bot durduruldu' : 'Bot başlatıldı',
                     'success'
                 );
             }
         } catch (e) {
-            this.showToast('Failed to toggle bot', 'error');
+            this.showToast('Bot durumu değiştirilemedi', 'error');
         }
     }
 
@@ -432,12 +698,12 @@ class TradingDashboard {
 
             if (data.success) {
                 this.showToast(
-                    `Dry run ${data.status.dry_run ? 'enabled' : 'disabled'}`,
+                    `Test modu ${data.status.dry_run ? 'açıldı' : 'kapatıldı'}`,
                     'info'
                 );
             }
         } catch (e) {
-            this.showToast('Failed to toggle dry run', 'error');
+            this.showToast('Test modu değiştirilemedi', 'error');
         }
     }
 
@@ -459,7 +725,7 @@ class TradingDashboard {
             list.innerHTML = `
                 <div class="empty-state">
                     <i data-lucide="alert-circle"></i>
-                    <span>Failed to load markets</span>
+                    <span>Piyasalar yüklenemedi</span>
                 </div>
             `;
             lucide.createIcons();
@@ -474,7 +740,7 @@ class TradingDashboard {
             list.innerHTML = `
                 <div class="empty-state">
                     <i data-lucide="search"></i>
-                    <span>No active markets</span>
+                    <span>Aktif piyasa yok</span>
                 </div>
             `;
             lucide.createIcons();
@@ -493,7 +759,10 @@ class TradingDashboard {
             return `
                 <div class="market-item">
                     <div class="market-header">
-                        <span class="market-name">BTC 15-min: ${timeDisplay}</span>
+                        <a href="https://polymarket.com/event/${market.slug}" target="_blank" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 4px;">
+                            <span class="market-name">BTC 15-min: ${timeDisplay}</span>
+                            <i data-lucide="external-link" style="width: 14px; height: 14px; opacity: 0.7;"></i>
+                        </a>
                         <span class="market-time">
                             <i data-lucide="clock"></i>
                             ${timeRemaining}
@@ -526,7 +795,7 @@ class TradingDashboard {
         if (!tbody) return;
 
         if (countEl) {
-            countEl.textContent = `${this.state.trades.length} trades`;
+            countEl.textContent = `${this.state.trades.length} işlem`;
         }
 
         if (this.state.trades.length === 0) {
@@ -535,7 +804,7 @@ class TradingDashboard {
                     <td colspan="8">
                         <div class="empty-state">
                             <i data-lucide="inbox"></i>
-                            <span>No trades yet</span>
+                            <span>Henüz işlem yok</span>
                         </div>
                     </td>
                 </tr>
@@ -552,7 +821,11 @@ class TradingDashboard {
             return `
                 <tr>
                     <td>${this.formatTime(trade.time)}</td>
-                    <td>${trade.market || 'BTC 15m'}</td>
+                    <td>
+                        <a href="https://polymarket.com/event/${trade.market_slug}" target="_blank" style="color: #a0a3bd; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                            ${trade.market || 'BTC 15m'} <i data-lucide="external-link" style="width: 12px; height: 12px;"></i>
+                        </a>
+                    </td>
                     <td><span class="trade-type ${trade.type?.toLowerCase()}">${trade.type || 'Snipe'}</span></td>
                     <td><span class="trade-side ${trade.side?.toLowerCase()}">${trade.side || 'Up'}</span></td>
                     <td>${this.formatCurrency(trade.price)}</td>
@@ -580,7 +853,7 @@ class TradingDashboard {
 
         dot.classList.toggle('connected', connected);
         dot.classList.toggle('disconnected', !connected);
-        text.textContent = connected ? 'Connected' : 'Disconnected';
+        text.textContent = connected ? 'Bağlı' : 'Bağlantı Yok';
     }
 
     showToast(message, type = 'info') {

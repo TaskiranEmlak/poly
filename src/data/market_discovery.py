@@ -117,28 +117,59 @@ async def discover_15min_btc_markets(
                     
                     m = event_markets[0]
                     
+                    outcomes = m.get("outcomes", [])
+                    try:
+                        import json
+                        if isinstance(outcomes, str):
+                            outcomes = json.loads(outcomes)
+                    except: outcomes = []
+                    
+                    if not outcomes:
+                        # Fallback for old markets or unknown structure
+                        outcomes = ["Yes", "No"] 
+
+                    # Dynamically map indexes
+                    up_idx = -1
+                    down_idx = -1
+                    
+                    for i, label in enumerate(outcomes):
+                        l = label.lower()
+                        if l in ["yes", "up", "long"]:
+                            up_idx = i
+                        elif l in ["no", "down", "short"]:
+                            down_idx = i
+                    
+                    # If extraction failed, assume standard 0=Yes/Up, 1=No/Down
+                    if up_idx == -1: up_idx = 0
+                    if down_idx == -1: down_idx = 1
+
                     # Parse tokens and prices
                     tokens_str = m.get("clobTokenIds", "[]")
                     try:
                         import json
-                        tokens = json.loads(tokens_str) if isinstance(tokens_str, str) else tokens_str
-                    except: tokens = []
+                        tokens_arr = json.loads(tokens_str) if isinstance(tokens_str, str) else tokens_str
+                    except: tokens_arr = []
                     
                     outcome_prices_str = m.get("outcomePrices", "[]")
                     try:
-                        outcome_prices = json.loads(outcome_prices_str) if isinstance(outcome_prices_str, str) else outcome_prices_str
-                    except: outcome_prices = []
+                        prices_arr = json.loads(outcome_prices_str) if isinstance(outcome_prices_str, str) else outcome_prices_str
+                    except: prices_arr = []
                     
+                    # Safe helpers
+                    def get_safe(arr, idx, default):
+                        return arr[idx] if len(arr) > idx else default
+
                     description = m.get("description", "")
                     start_time = event.get("startDate", "") # Note: API uses startDate, not startTime usually
                     if not start_time: start_time = event.get("startTime", "")
 
                     # 1. Try regex from description (fallback)
                     strike_price = None
-                    price_match = re.search(r'(?:higher than|above|price to beat).*?\$([\d,]+\.?\d*)', description, re.IGNORECASE)
+                    # Expanded regex to capture "strike price", "target price", "above", "higher than"
+                    price_match = re.search(r'(?:higher than|above|price to beat|strike price|target).*?\$([\d,]+\.?\d*)', description, re.IGNORECASE)
                     if price_match:
                         try:
-                            strike_price = float(price_match.group(1).replace(",", ""))
+                             strike_price = float(price_match.group(1).replace(",", ""))
                         except: pass
                     
                     # 2. If no strike and market started, fetch from History
@@ -149,6 +180,20 @@ async def discover_15min_btc_markets(
                                 # Market started, fetch historical Open Price
                                 strike_price = await get_btc_price_at_time(start_time)
                         except: pass
+                    
+                    # SAFETY: If Outcome Prices are missing, DO NOT assume 0.5 (50%)
+                    # Defaulting to 0.5 caused "False Opportunities"
+                    up_p = get_safe(prices_arr, up_idx, None)
+                    down_p = get_safe(prices_arr, down_idx, None)
+                    
+                    if up_p is None or down_p is None:
+                        logger.warning("market_skipped_no_prices", slug=slug)
+                        continue # Skip this market
+                    
+                    outcome_prices_dict = {
+                        "up": float(up_p),
+                        "down": float(down_p)
+                    }
 
                     market_info = {
                         "condition_id": m.get("conditionId", ""),
@@ -160,13 +205,10 @@ async def discover_15min_btc_markets(
                         "end_date": m.get("endDate", ""),
                         "start_time": start_time,
                         "tokens": {
-                            "up": tokens[0] if len(tokens) > 0 else None,
-                            "down": tokens[1] if len(tokens) > 1 else None
+                            "up": get_safe(tokens_arr, up_idx, None),
+                            "down": get_safe(tokens_arr, down_idx, None)
                         },
-                        "outcome_prices": {
-                            "up": float(outcome_prices[0]) if len(outcome_prices) > 0 else 0.5,
-                            "down": float(outcome_prices[1]) if len(outcome_prices) > 1 else 0.5
-                        },
+                        "outcome_prices": outcome_prices_dict,
                         "volume": float(m.get("volume", 0) or 0),
                         "liquidity": float(m.get("liquidity", 0) or 0),
                         "best_bid": float(m.get("bestBid", 0) or 0),
@@ -177,7 +219,22 @@ async def discover_15min_btc_markets(
                     if market_info["end_date"]:
                         try:
                             end_dt = datetime.fromisoformat(market_info["end_date"].replace("Z", "+00:00"))
-                            if end_dt > datetime.now(timezone.utc):
+                            now = datetime.now(timezone.utc)
+                            
+                            # Validated against slug timestamp if available
+                            is_valid_time = True
+                            if match and isinstance(match, re.Match):
+                                try:
+                                    slug_ts = int(match.group(1))
+                                    # If slug timestamp implies the market ended more than 15 mins ago, skip it
+                                    # 15m markets usually end at slug_ts or slug_ts + 15m
+                                    # Give it a small buffer, but definitely shouldn't be hours old
+                                    if slug_ts < (now.timestamp() - 3600): # older than 1 hour
+                                        is_valid_time = False
+                                        logger.warning("stale_market_slug_detected", slug=slug, slug_ts=slug_ts, now=now.timestamp())
+                                except: pass
+
+                            if end_dt > now and is_valid_time:
                                 markets.append(market_info)
                                 logger.debug("found_btc_15m_market", slug=slug, strike=strike_price)
                         except: pass

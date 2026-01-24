@@ -10,20 +10,23 @@ A high-frequency trading bot for Polymarket's 15-minute Bitcoin prediction marke
 4. **Never share your private key** - Keep `.env` secure and in `.gitignore`
 
 ## Strategy Overview
+The bot employs a **Smart Hybrid Strategy (Strategy 2.0)**:
 
-This bot uses a **hybrid strategy**:
+### 1. Oracle Latency Arbitrage (Sniper) 🦅
+- **Grand Composite Oracle:** Aggregates real-time prices from **6 Major Exchanges** (Binance, Coinbase, Kraken, Bitstamp, Gemini, Bitfinex) to match Chainlink's reference price with >99.9% accuracy.
+- **Fair Value Model:** Uses Black-Scholes adapted for 15-minute binary options.
+- **Data Integrity:** "Strict Mode" rejects markets with missing or invalid pricing.
 
-### 1. Oracle Latency Arbitrage (Sniper)
-- Monitors Binance BTC price in real-time
-- Calculates theoretical fair value using Black-Scholes-like model
-- Snipes "stale" orders on Polymarket before market makers update
-- Only trades when expected profit > fees + minimum edge
+### 2. Smart Trend & Momentum Filter (The Brain) 🧠
+- **Trend Following:** Never trades against the SMA (Simple Moving Average).
+  - *e.g., If BTC > SMA20, ONLY Long (Up) trades are permitted.*
+- **RSI Protection:** Prevents buying at tops (Overbought > 70) or selling at bottoms (Oversold < 30).
+- **Sentiment Analysis:** Visualizes "AI Decision" on the Dashboard.
 
-### 2. Market Making (Passive Income)
-- Places limit orders around fair value
-- Earns the bid-ask spread
-- Collects maker rebates from Polymarket
-- Manages inventory to avoid directional exposure
+### 3. Risk Management Fortress 🛡️
+- **Consecutive Loss Limit:** Auto-halts after 3 losing trades in a row.
+- **Drawdown Brake:** Stops all trading if portfolio drops by 10%.
+- **Late Settlement Protection:** Voids trades if settlement is delayed > 5 mins (prevents using stale prices).
 
 ## Project Structure
 
@@ -135,6 +138,15 @@ python -m src.main
 # Set DRY_RUN=false in .env
 python -m src.main
 ```
+
+### 📊 Dashboard
+
+To view the live dashboard:
+
+```bash
+uvicorn dashboard.server:app --reload
+```
+Open http://127.0.0.1:8000 in your browser.
 
 ## Fee Structure
 

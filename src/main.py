@@ -239,13 +239,17 @@ class PolymarketHFTBot:
         # Only run if mode is 'hybrid' or 'maker_only'
         # AND if no latency opportunity was taken (to avoid conflicts)
         if not opportunity and settings.strategy_type in ["hybrid", "maker_only"]:
-            orders_to_cancel, new_quotes = self.mm_engine.generate_quote_update(
-                binance_price=self.current_binance_price,
-                strike_price=strike_decimal,
-                remaining_seconds=remaining,
-                orderbook=self.current_orderbook,
-                token_id=self.active_market["tokens"]["yes"]
-            )
+            # Token ID (Handle UP/YES mapping)
+            token_id = self.active_market["tokens"].get("yes") or self.active_market["tokens"].get("up")
+            
+            if token_id:
+                orders_to_cancel, new_quotes = self.mm_engine.generate_quote_update(
+                    binance_price=self.current_binance_price,
+                    strike_price=strike_decimal,
+                    remaining_seconds=remaining,
+                    orderbook=self.current_orderbook,
+                    token_id=token_id
+                )
             
             # Cancel stale orders
             for order_id in orders_to_cancel:
@@ -285,10 +289,9 @@ class PolymarketHFTBot:
                 )
                 
                 # Subscribe to the new market
-                if self.polymarket_feed and self.active_market["tokens"]["yes"]:
-                    await self.polymarket_feed.subscribe(
-                        self.active_market["tokens"]["yes"]
-                    )
+                token_id = self.active_market["tokens"].get("yes") or self.active_market["tokens"].get("up")
+                if self.polymarket_feed and token_id:
+                    await self.polymarket_feed.subscribe(token_id)
             else:
                 logger.warning("no_active_markets_found")
                 self.active_market = None
@@ -360,20 +363,29 @@ class PolymarketHFTBot:
             wss_url=settings.binance_wss
         )
         
-        self.polymarket_feed = PolymarketFeed(
-            on_orderbook_update=self.on_orderbook_update,
-            wss_url=settings.polymarket_ws
-        )
+        self.polymarket_feed = None
+        polymarket_task = None
         
-        # Subscribe to active market
-        if self.active_market["tokens"]["yes"]:
-            await self.polymarket_feed.subscribe(
-                self.active_market["tokens"]["yes"]
+        # Only connect to Polymarket WebSocket if we need order book data
+        # In maker_only mode, we don't need it (paper trading uses Gamma API)
+        if settings.strategy_type != "maker_only":
+            self.polymarket_feed = PolymarketFeed(
+                on_orderbook_update=self.on_orderbook_update,
+                wss_url=settings.polymarket_ws
             )
+            
+            # Subscribe to active market
+            token_id = self.active_market["tokens"].get("yes") or self.active_market["tokens"].get("up")
+            if self.polymarket_feed and token_id:
+                await self.polymarket_feed.subscribe(token_id)
+            
+            polymarket_task = asyncio.create_task(self.polymarket_feed.connect())
+            logger.info("polymarket_ws_enabled", strategy_type=settings.strategy_type)
+        else:
+            logger.info("polymarket_ws_disabled", reason="maker_only mode uses Gamma API")
         
         # Start feed tasks
         binance_task = asyncio.create_task(self.binance_feed.connect())
-        polymarket_task = asyncio.create_task(self.polymarket_feed.connect())
         
         # Stats printing task
         async def print_stats_periodically():
@@ -409,13 +421,10 @@ class PolymarketHFTBot:
         
         try:
             # Run until stopped
-            await asyncio.gather(
-                binance_task,
-                polymarket_task,
-                stats_task,
-                refresh_task,
-                vol_task
-            )
+            tasks = [binance_task, stats_task, refresh_task, vol_task]
+            if polymarket_task:
+                tasks.append(polymarket_task)
+            await asyncio.gather(*tasks)
         except asyncio.CancelledError:
             logger.info("bot_tasks_cancelled")
         finally:

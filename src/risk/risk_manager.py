@@ -60,6 +60,11 @@ class RiskManager:
         # Stats
         self.trades_approved = 0
         self.trades_rejected = 0
+        self.consecutive_losses = 0
+        
+        # Limits
+        self.max_consecutive_losses = 3
+        self.max_drawdown_pct = 0.10 # 10% max drawdown
     
     def _reset_daily_if_needed(self):
         """Reset daily counters if it's a new day."""
@@ -174,22 +179,35 @@ class RiskManager:
         self.open_positions = max(0, self.open_positions - 1)
         self.daily_pnl += pnl
         
+        if pnl > 0:
+            self.consecutive_losses = 0
+        else:
+            self.consecutive_losses += 1
+            
         logger.info(
             "risk_position_closed",
             pnl=f"${pnl:.2f}",
             daily_pnl=f"${self.daily_pnl:.2f}",
-            open_positions=self.open_positions
+            open_positions=self.open_positions,
+            consecutive_losses=self.consecutive_losses
         )
         
         # Check if we've hit daily loss limit
         if self.daily_pnl < -self.max_daily_loss:
-            self.is_halted = True
-            self.halt_reason = f"Daily loss limit: ${-self.daily_pnl:.2f}"
-            
-            logger.warning(
-                "risk_trading_halted",
-                reason=self.halt_reason
-            )
+            self.halt_trading(f"Daily loss limit: ${-self.daily_pnl:.2f}")
+
+        # Check consecutive losses
+        if self.consecutive_losses >= self.max_consecutive_losses:
+            self.halt_trading(f"Consecutive losses limit ({self.consecutive_losses}) hit")
+
+    def check_drawdown(self, current_balance: float, initial_balance: float):
+        """Check for max drawdown."""
+        if initial_balance <= 0:
+            return
+
+        drawdown = (initial_balance - current_balance) / initial_balance
+        if drawdown >= self.max_drawdown_pct:
+            self.halt_trading(f"Max drawdown limit ({drawdown:.1%}) reached")
     
     def halt_trading(self, reason: str):
         """Manually halt trading."""

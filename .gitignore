@@ -55,3 +55,9 @@ Thumbs.db
 trades.db
 positions.json
 state.json
+paper_trading_data.json
+chainlink_data.json
+
+# Debug Scripts (Optional - keep repo clean)
+debug_*.py
+test_*.py

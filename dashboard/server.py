@@ -17,8 +17,16 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+import sys
+import os
 
-# Get the dashboard directory
+# Add project root to sys.path to allow imports from src and dashboard
+# This is necessary because server.py is inside a subdirectory
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, ".."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 DASHBOARD_DIR = Path(__file__).parent
 STATIC_DIR = DASHBOARD_DIR / "static"
 
@@ -45,7 +53,7 @@ class ConnectionManager:
             "last_update": None
         }
         self.portfolio = {
-            "value": 10000.00,
+            "value": 10.00,
             "pnl_today": 0.00,
             "pnl_percent": 0.00,
             "win_rate": 0.0,
@@ -236,14 +244,14 @@ async def startup():
     print("\n" + "="*50)
     print(">>> Polymarket Trading Dashboard <<<")
     print("="*50)
-    print(f"[*] Dashboard: http://localhost:8080")
-    print(f"[*] WebSocket: ws://localhost:8080/ws")
-    print(f"[*] API Docs: http://localhost:8080/docs")
+    print(f"[*] Dashboard: http://localhost:8000")
+    print(f"[*] WebSocket: ws://localhost:8000/ws")
+    print(f"[*] API Docs: http://localhost:8000/docs")
     print(f"[*] Paper Trading: Click 'Start Bot' to begin")
     print("="*50 + "\n")
 
 
-def run_dashboard(host: str = "0.0.0.0", port: int = 8080):
+def run_dashboard(host: str = "0.0.0.0", port: int = 8000):
     """Run the dashboard server."""
     uvicorn.run(app, host=host, port=port)
 

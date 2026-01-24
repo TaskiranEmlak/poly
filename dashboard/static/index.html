@@ -26,26 +26,26 @@
             <nav class="nav">
                 <a href="#" class="nav-item active" data-page="dashboard">
                     <i data-lucide="layout-dashboard"></i>
-                    <span>Dashboard</span>
+                    <span>Kontrol Paneli</span>
                 </a>
                 <a href="#" class="nav-item" data-page="markets">
                     <i data-lucide="bar-chart-3"></i>
-                    <span>Markets</span>
+                    <span>Piyasalar</span>
                 </a>
                 <a href="#" class="nav-item" data-page="trades">
                     <i data-lucide="history"></i>
-                    <span>Trades</span>
+                    <span>İşlemler</span>
                 </a>
                 <a href="#" class="nav-item" data-page="settings">
                     <i data-lucide="settings"></i>
-                    <span>Settings</span>
+                    <span>Ayarlar</span>
                 </a>
             </nav>
 
             <div class="sidebar-footer">
                 <div class="connection-status" id="connection-status">
                     <span class="status-dot"></span>
-                    <span class="status-text">Connecting...</span>
+                    <span class="status-text">Bağlanıyor...</span>
                 </div>
             </div>
         </aside>
@@ -57,18 +57,18 @@
                 <!-- Header -->
                 <header class="header">
                     <div class="header-left">
-                        <h1 class="page-title">Dashboard</h1>
-                        <span class="page-subtitle">BTC 15-Minute Prediction Markets</span>
+                        <h1 class="page-title">Kontrol Paneli</h1>
+                        <span class="page-subtitle">BTC 15-Dakikalık Tahmin Piyasaları</span>
                     </div>
                     <div class="header-right">
                         <div class="bot-controls">
                             <button class="btn btn-secondary" id="dry-run-toggle">
                                 <i data-lucide="flask-conical"></i>
-                                <span>Dry Run: ON</span>
+                                <span>Test Modu: AÇIK</span>
                             </button>
                             <button class="btn btn-primary" id="bot-toggle">
                                 <i data-lucide="play"></i>
-                                <span>Start Bot</span>
+                                <span>Botu Başlat</span>
                             </button>
                         </div>
                     </div>
@@ -81,7 +81,7 @@
                             <i data-lucide="wallet"></i>
                         </div>
                         <div class="stat-content">
-                            <span class="stat-label">Portfolio Value</span>
+                            <span class="stat-label">Portföy Değeri</span>
                             <span class="stat-value" id="portfolio-value">$10,000.00</span>
                         </div>
                     </div>
@@ -91,7 +91,7 @@
                             <i data-lucide="trending-up"></i>
                         </div>
                         <div class="stat-content">
-                            <span class="stat-label">Today's P&L</span>
+                            <span class="stat-label">Günlük K/Z</span>
                             <span class="stat-value profit" id="pnl-today">+$0.00</span>
                         </div>
                     </div>
@@ -101,7 +101,7 @@
                             <i data-lucide="target"></i>
                         </div>
                         <div class="stat-content">
-                            <span class="stat-label">Win Rate</span>
+                            <span class="stat-label">Kazanma Oranı</span>
                             <span class="stat-value" id="win-rate">0%</span>
                         </div>
                     </div>
@@ -111,7 +111,7 @@
                             <i data-lucide="layers"></i>
                         </div>
                         <div class="stat-content">
-                            <span class="stat-label">Active Positions</span>
+                            <span class="stat-label">Aktif Pozisyonlar</span>
                             <span class="stat-value" id="active-positions">0</span>
                         </div>
                     </div>
@@ -119,6 +119,81 @@
 
                 <!-- Main Grid -->
                 <div class="content-grid">
+
+                    <!-- STRATEGY PULSE PANEL -->
+                    <section class="card strategy-card" id="strategy-pulse-panel">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i data-lucide="brain-circuit"></i>
+                                <span>Yapay Zeka Kararı</span>
+                            </div>
+                            <!-- Trend Badge -->
+                            <div class="trend-badge neutral" id="strategy-trend">
+                                NÖTR
+                            </div>
+                        </div>
+                        <div class="strategy-content">
+                            <div class="strategy-metric">
+                                <span class="metric-label">RSI (Güç)</span>
+                                <div class="rsi-container">
+                                    <div class="rsi-bar">
+                                        <div class="rsi-fill" id="rsi-fill" style="width: 50%;"></div>
+                                    </div>
+                                    <span class="rsi-value" id="rsi-value">50.0</span>
+                                </div>
+                            </div>
+                            <div class="strategy-metric">
+                                <span class="metric-label">Momentum (SMA)</span>
+                                <span class="metric-value" id="sma-value">Bekleniyor...</span>
+                            </div>
+                            <div class="strategy-decision">
+                                <span class="decision-label">Botun Kararı:</span>
+                                <span class="decision-text" id="strategy-decision">VERİ TOPLANIYOR</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- ACTIVE TRADE PANEL - New Section -->
+                    <section class="card active-trade-card" id="active-trade-panel" style="display: none;">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i data-lucide="zap"></i>
+                                <span>Aktif İşlem</span>
+                            </div>
+                            <div class="trade-countdown" id="trade-countdown">
+                                <i data-lucide="clock"></i>
+                                <span id="countdown-timer">--:--</span>
+                            </div>
+                        </div>
+                        <div class="active-trade-content">
+                            <div class="trade-info-grid">
+                                <div class="trade-info-item">
+                                    <span class="info-label">Yön</span>
+                                    <span class="info-value trade-side" id="active-side">YUKARI</span>
+                                </div>
+                                <div class="trade-info-item">
+                                    <span class="info-label">Giriş Fiyatı</span>
+                                    <span class="info-value" id="active-entry">$0.00</span>
+                                </div>
+                                <div class="trade-info-item">
+                                    <span class="info-label">Strike</span>
+                                    <span class="info-value" id="active-strike">$0.00</span>
+                                </div>
+                                <div class="trade-info-item">
+                                    <span class="info-label">BTC Şimdi</span>
+                                    <span class="info-value" id="active-btc">$0.00</span>
+                                </div>
+                                <div class="trade-info-item wide">
+                                    <span class="info-label">Durum</span>
+                                    <span class="info-value status-indicator" id="active-status">
+                                        <span class="status-dot winning"></span>
+                                        Kazanç Yönünde
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Chart Section -->
                     <section class="card chart-card">
                         <div class="card-header">
@@ -131,7 +206,30 @@
                                 <span class="price-change profit" id="price-change">+0.00%</span>
                             </div>
                         </div>
-                        <div class="chart-container" id="price-chart"></div>
+                        <div class="chart-container" id="price-chart"
+                            style="height: 300px; border-bottom: 1px solid var(--border-color);">
+                            <div class="chart-legend"
+                                style="position: absolute; top: 12px; left: 12px; z-index: 5; background: rgba(19, 23, 34, 0.8); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); font-size: 12px; pointer-events: none;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                    <span style="width: 12px; height: 2px; background: #00d4ff;"></span>
+                                    <span style="color: #a0a3bd;">Ref Endeks Fiyatı (Binance+Coinbase)</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="width: 12px; height: 2px; border-bottom: 2px dashed #ff4d6a;"></span>
+                                    <span style="color: #a0a3bd;">Hedef Strike Fiyatı</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chart-container" id="prob-chart" style="height: 150px; position: relative;">
+                            <div class="chart-legend"
+                                style="position: absolute; top: 12px; left: 12px; z-index: 5; background: rgba(19, 23, 34, 0.8); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); font-size: 12px; pointer-events: none;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span
+                                        style="width: 8px; height: 8px; border-radius: 50%; background: #00ff88;"></span>
+                                    <span style="color: #a0a3bd;">Polymarket "YUKARI" Olasılığı</span>
+                                </div>
+                            </div>
+                        </div>
                     </section>
 
                     <!-- Active Markets -->
@@ -139,7 +237,7 @@
                         <div class="card-header">
                             <div class="card-title">
                                 <i data-lucide="activity"></i>
-                                <span>Active Markets</span>
+                                <span>Aktif Piyasalar</span>
                             </div>
                             <button class="btn btn-ghost btn-sm" id="refresh-markets">
                                 <i data-lucide="refresh-cw"></i>
@@ -148,7 +246,7 @@
                         <div class="markets-list" id="markets-list">
                             <div class="loading">
                                 <div class="spinner"></div>
-                                <span>Loading markets...</span>
+                                <span>Piyasalar yükleniyor...</span>
                             </div>
                         </div>
                     </section>
@@ -159,13 +257,13 @@
                     <div class="card-header">
                         <div class="card-title">
                             <i data-lucide="terminal"></i>
-                            <span>Bot Activity</span>
+                            <span>Bot Aktivitesi</span>
                         </div>
                     </div>
                     <div class="log-container" id="activity-log">
                         <div class="log-entry info">
                             <span class="log-time">--:--:--</span>
-                            <span class="log-message">Waiting for bot logs...</span>
+                            <span class="log-message">Bot logları bekleniyor...</span>
                         </div>
                     </div>
                 </section>
@@ -175,22 +273,22 @@
                     <div class="card-header">
                         <div class="card-title">
                             <i data-lucide="scroll-text"></i>
-                            <span>Recent Trades</span>
+                            <span>Son İşlemler</span>
                         </div>
-                        <span class="trade-count" id="trade-count">0 trades</span>
+                        <span class="trade-count" id="trade-count">0 işlem</span>
                     </div>
                     <div class="table-container">
                         <table class="trades-table">
                             <thead>
                                 <tr>
-                                    <th>Time</th>
-                                    <th>Market</th>
-                                    <th>Type</th>
-                                    <th>Side</th>
-                                    <th>Price</th>
-                                    <th>Amount</th>
-                                    <th>P&L</th>
-                                    <th>Status</th>
+                                    <th>Zaman</th>
+                                    <th>Piyasa</th>
+                                    <th>Tür</th>
+                                    <th>Yön</th>
+                                    <th>Fiyat</th>
+                                    <th>Miktar</th>
+                                    <th>K/Z</th>
+                                    <th>Durum</th>
                                 </tr>
                             </thead>
                             <tbody id="trades-body">
@@ -198,7 +296,7 @@
                                     <td colspan="8">
                                         <div class="empty-state">
                                             <i data-lucide="inbox"></i>
-                                            <span>No trades yet</span>
+                                            <span>Henüz işlem yok</span>
                                         </div>
                                     </td>
                                 </tr>
@@ -212,14 +310,14 @@
             <div id="page-markets" class="page-view" style="display: none;">
                 <header class="header">
                     <div class="header-left">
-                        <h1 class="page-title">Market Analysis</h1>
+                        <h1 class="page-title">Piyasa Analizi</h1>
                     </div>
                 </header>
                 <div class="card full-height">
                     <div class="card-body">
                         <div class="empty-state">
                             <i data-lucide="bar-chart-3"></i>
-                            <span>Detailed market analysis coming soon</span>
+                            <span>Detaylı piyasa analizi yakında...</span>
                         </div>
                     </div>
                 </div>
@@ -229,7 +327,7 @@
             <div id="page-trades" class="page-view" style="display: none;">
                 <header class="header">
                     <div class="header-left">
-                        <h1 class="page-title">Trade History</h1>
+                        <h1 class="page-title">İşlem Geçmişi</h1>
                     </div>
                 </header>
                 <div class="card">
@@ -237,7 +335,7 @@
                     <div class="card-body">
                         <div class="empty-state">
                             <i data-lucide="history"></i>
-                            <span>Full trade history coming soon</span>
+                            <span>Detaylı işlem geçmişi yakında...</span>
                         </div>
                     </div>
                 </div>
@@ -270,7 +368,7 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js?v=8"></script>
 </body>
 
 </html>

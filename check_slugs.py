@@ -22,22 +22,25 @@ async def main():
     print(f"Total markets fetched: {len(markets)}\n")
     
     # Find BTC-related markets
-    btc_markets = []
-    for m in markets:
-        slug = m.get("slug", "").lower()
-        question = m.get("question", "").lower()
-        
-        if "btc" in slug or "bitcoin" in question or "btc" in question:
-            btc_markets.append({
-                "slug": m.get("slug"),
-                "question": m.get("question", "")[:100]
+    
+    # The following line was likely a mistake in the provided edit, as 'events' is not defined.
+    # print(f"\nTotal markets fetched: {len(events)}") 
+    
+    btc_slugs = []
+    
+    for event in markets: # Changed 'events' to 'markets' to match existing variable
+        # Assuming 'title' in the edit corresponds to 'question' in the original structure
+        if "15m" in event.get("slug", "") or "Bitcoin Up or Down" in event.get("question", ""):
+            btc_slugs.append({
+                "slug": event.get("slug"),
+                "question": event.get("question")
             })
     
-    print(f"BTC-related markets found: {len(btc_markets)}\n")
+    print(f"\nBTC-related markets found: {len(btc_slugs)}\n") # Fixed syntax error: extra '}'
     
-    if btc_markets:
+    if btc_slugs: # Changed 'btc_markets' to 'btc_slugs'
         print("BTC market slugs:")
-        for m in btc_markets:
+        for m in btc_slugs: # Changed 'btc_markets' to 'btc_slugs'
             print(f"  Slug: {m['slug']}")
             print(f"  Question: {m['question']}")
             print()
